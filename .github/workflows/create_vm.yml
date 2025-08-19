@@ -23,7 +23,3 @@ jobs:
 
       - name: Show current subscription
         run: az account show
-
-        
-
-
