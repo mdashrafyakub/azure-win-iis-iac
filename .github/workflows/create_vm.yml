@@ -14,6 +14,7 @@ permissions:
 jobs:
   plan:
     if: github.event_name == 'pull_request'
+    environment: dev
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,6 +33,7 @@ jobs:
 
   apply:
     if: github.event_name == 'push'    # applies on main or prod
+    environment: dev
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
