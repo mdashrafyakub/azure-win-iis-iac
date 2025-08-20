@@ -1,25 +1,42 @@
-name: azure-win-iis
 on:
-    push:
-        branches:
-            - main
-            - test-branch
-permissions:
-  id-token: write
-  contents: read
+  pull_request:
+    branches: [ main, prod ]
+    paths: [ 'terraform/**', 'envs/**' ]
+  push:
+    branches: [ main, prod ]
+    paths: [ 'terraform/**', 'envs/**' ]
 
 jobs:
-  sanity:
+  plan:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
+      - uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          allow-no-subscriptions: true
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform -chdir=terraform init -input=false
+      - name: format
+        run: terraform -chdir=terraform fmt
+      - name: Plan (branch→tfvars)
+        run: terraform -chdir=terraform plan -var-file=../envs/${{ github.event.pull_request.base.ref }}.tfvars
 
-      - name: Show current subscription
-        run: az account show
+  apply:
+    if: github.event_name == 'push'    # applies on main or prod
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform -chdir=terraform init -input=false
+      - name: Plan (branch→tfvars)
+        run: terraform -chdir=terraform plan -var-file=../envs/${{ github.ref_name }}.tfvars
+      - name: Apply (branch→tfvars)
+        run: terraform -chdir=terraform apply -auto-approve -var-file=../envs/${{ github.ref_name }}.tfvars
