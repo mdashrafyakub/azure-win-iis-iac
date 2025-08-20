@@ -1,3 +1,4 @@
+name: azure-win-iis
 on:
   pull_request:
     branches: [ main, prod ]
@@ -5,6 +6,10 @@ on:
   push:
     branches: [ main, prod ]
     paths: [ 'terraform/**', 'envs/**' ]
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   plan:
